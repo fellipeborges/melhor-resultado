@@ -178,19 +178,15 @@ function renderGridCard(categoryKey, athletes, gridState, searchQuery) {
   }
 
   const ageGroups = groupByAgeGroup(athletes);
-  const showAgeToggle = ageGroups.length > 1;
+  const showAgeToggle = ageGroups.some((group) => group.code);
 
   const bodyContent =
     state.viewMode === 'age' && showAgeToggle
       ? renderAgeTabs(categoryKey, ageGroups, state, highlightQuery)
       : renderTable(athletes, highlightQuery);
 
-  return `
-    <section class="grid-card" data-category="${categoryKey}">
-      <header class="grid-card__header">
-        ${
-          showAgeToggle
-            ? `
+  const viewToggle = showAgeToggle
+    ? `
         <div class="view-toggle" role="group" aria-label="Modo de visualização">
           <button
             type="button"
@@ -208,9 +204,11 @@ function renderGridCard(categoryKey, athletes, gridState, searchQuery) {
           ><span class="view-toggle__label view-toggle__label--full">Por faixa etária</span><span class="view-toggle__label view-toggle__label--short">Fx. etária</span></button>
         </div>
         `
-            : ''
-        }
-      </header>
+    : '';
+
+  return `
+    <section class="grid-card" data-category="${categoryKey}">
+      ${viewToggle ? `<header class="grid-card__header">${viewToggle}</header>` : ''}
 
       <div class="grid-card__body">${bodyContent}</div>
     </section>

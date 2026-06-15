@@ -211,6 +211,11 @@ body {
     padding: 8px 10px;
   }
 
+  .search-autocomplete__row .btn--clear-filter {
+    min-height: 40px;
+    padding: 8px;
+  }
+
   .alert-container {
     margin-bottom: 8px;
   }

@@ -90,6 +90,34 @@
   width: 100%;
 }
 
+.search-autocomplete__row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  width: 100%;
+}
+
+.search-autocomplete__row .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.search-autocomplete__row .btn {
+  flex: 0 0 auto;
+}
+
+.btn--clear-filter {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+}
+
+.btn--clear-filter:hover:not(:disabled) {
+  background: #eef1f5;
+  color: var(--color-text);
+}
+
 .search-autocomplete__list {
   position: absolute;
   z-index: 20;
@@ -251,7 +279,8 @@
 
 .view-toggle {
   display: flex;
-  flex-shrink: 1;
+  flex: 1;
+  width: 100%;
   min-width: 0;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
@@ -522,8 +551,14 @@
   }
 
   .grid-card__header {
+    display: flex;
+    width: 100%;
     gap: 6px;
     margin-bottom: 8px;
+  }
+
+  .view-toggle {
+    width: 100%;
   }
 
   .view-toggle__btn {

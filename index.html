@@ -35,19 +35,34 @@
           </div>
         </div>
         <div class="search-autocomplete">
-          <input
-            type="search"
-            id="search-input"
-            class="input input--search"
-            placeholder="Nome, número ou equipe..."
-            autocomplete="off"
-            enterkeyhint="search"
-            role="combobox"
-            aria-expanded="false"
-            aria-controls="search-suggestions"
-            aria-autocomplete="list"
-            disabled
-          >
+          <div class="search-autocomplete__row">
+            <input
+              type="search"
+              id="search-input"
+              class="input input--search"
+              placeholder="Nome, número ou equipe..."
+              autocomplete="off"
+              enterkeyhint="search"
+              role="combobox"
+              aria-expanded="false"
+              aria-controls="search-suggestions"
+              aria-autocomplete="list"
+              disabled
+            >
+            <button
+              type="button"
+              id="btn-clear-search"
+              class="btn btn--icon btn--clear-filter"
+              title="Limpar filtro"
+              aria-label="Limpar filtro"
+              disabled
+            >
+              <svg class="btn__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 6 6 18"/>
+                <path d="m6 6 12 12"/>
+              </svg>
+            </button>
+          </div>
           <ul
             id="search-suggestions"
             class="search-autocomplete__list"

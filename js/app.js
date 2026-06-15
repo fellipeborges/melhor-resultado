@@ -13,6 +13,7 @@ import {
 const sourceUrlInput = document.getElementById('source-url');
 const searchInput = document.getElementById('search-input');
 const searchSuggestions = document.getElementById('search-suggestions');
+const btnClearSearch = document.getElementById('btn-clear-search');
 const btnProcess = document.getElementById('btn-process');
 const alertContainer = document.getElementById('alert-container');
 const resultsContainer = document.getElementById('results-container');
@@ -33,6 +34,18 @@ function applySearchQuery(query) {
   state.searchQuery = query;
   syncUrlParams();
   renderCurrentView();
+  updateClearFilterButton();
+}
+
+function updateClearFilterButton() {
+  btnClearSearch.disabled = searchInput.disabled || !searchInput.value;
+}
+
+function clearSearchFilter() {
+  searchInput.value = '';
+  searchAutocomplete.clear();
+  applySearchQuery('');
+  searchInput.focus();
 }
 
 const searchAutocomplete = createSearchAutocomplete(searchInput, searchSuggestions, {
@@ -68,6 +81,7 @@ function syncUrlParams() {
 function setControlsEnabled(hasData) {
   searchInput.disabled = !hasData;
   btnProcess.disabled = state.isLoading;
+  updateClearFilterButton();
 }
 
 function renderCurrentView() {
@@ -186,6 +200,8 @@ function initFromUrlParams() {
     state.searchQuery = params.q;
   }
 
+  updateClearFilterButton();
+
   if (params.url) {
     loadResults(params.url);
   }
@@ -201,7 +217,12 @@ sourceUrlInput.addEventListener('keydown', (event) => {
   }
 });
 
-searchInput.addEventListener('input', handleSearchInput);
+searchInput.addEventListener('input', () => {
+  updateClearFilterButton();
+  handleSearchInput();
+});
+
+btnClearSearch.addEventListener('click', clearSearchFilter);
 
 resultsContainer.addEventListener('click', handleGridAction);
 
