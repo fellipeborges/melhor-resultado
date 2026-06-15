@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Melhor Resultado — Visualizador de Corrida</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/loading.css">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <h1 class="header__title">Melhor Resultado</h1>
+      <p class="header__subtitle">Visualize resultados de corrida de forma clara e compartilhável</p>
+
+      <div class="controls">
+        <div class="controls__url-row">
+          <input
+            type="url"
+            id="source-url"
+            class="input"
+            placeholder="URL dos resultados..."
+            autocomplete="url"
+            enterkeyhint="go"
+          >
+          <div class="controls__actions">
+            <button type="button" id="btn-process" class="btn btn--primary">Processar</button>
+            <button type="button" id="btn-refresh" class="btn btn--secondary" title="Atualizar dados" disabled>
+              Atualizar
+            </button>
+          </div>
+        </div>
+        <input
+          type="search"
+          id="search-input"
+          class="input input--search"
+          placeholder="Nome, número ou equipe..."
+          autocomplete="off"
+          enterkeyhint="search"
+          disabled
+        >
+      </div>
+    </header>
+
+    <div id="alert-container" class="alert-container" role="alert" aria-live="polite"></div>
+
+    <main id="results-container" class="results"></main>
+
+    <footer class="footer">
+      <p class="footer__text">
+        Desenvolvido por
+        <a
+          class="footer__link"
+          href="https://github.com/fellipeborges/melhor-resultado"
+          target="_blank"
+          rel="noopener noreferrer"
+        >Fellipe Borges</a>
+      </p>
+    </footer>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

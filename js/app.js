@@ -1,0 +1,206 @@
+import { fetchResultsPage } from './fetcher.js';
+import { parseResults } from './parser.js';
+import { filterCategories } from './filter.js';
+import { getUrlParams, setUrlParams } from './url-params.js';
+import { CATEGORY_KEYS } from './config.js';
+import {
+  renderGrids,
+  renderSkeleton,
+  renderAlert,
+  clearAlert,
+} from './renderer.js';
+
+const sourceUrlInput = document.getElementById('source-url');
+const searchInput = document.getElementById('search-input');
+const btnProcess = document.getElementById('btn-process');
+const btnRefresh = document.getElementById('btn-refresh');
+const alertContainer = document.getElementById('alert-container');
+const resultsContainer = document.getElementById('results-container');
+const headerTitle = document.querySelector('.header__title');
+
+const state = {
+  sourceUrl: '',
+  searchQuery: '',
+  rawCategories: null,
+  gridState: createDefaultGridState(),
+  activeCategoryTab: CATEGORY_KEYS[0],
+  isLoading: false,
+};
+
+function createDefaultGridState() {
+  return Object.fromEntries(
+    CATEGORY_KEYS.map((key) => [
+      key,
+      { expanded: false, viewMode: 'all', activeAgeTab: null },
+    ])
+  );
+}
+
+function debounce(fn, delay) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+
+function syncUrlParams() {
+  setUrlParams({ url: state.sourceUrl, q: state.searchQuery });
+}
+
+function setControlsEnabled(hasData) {
+  searchInput.disabled = !hasData;
+  btnRefresh.disabled = !hasData || state.isLoading;
+  btnProcess.disabled = state.isLoading;
+}
+
+function renderCurrentView() {
+  if (!state.rawCategories) {
+    resultsContainer.innerHTML = '';
+    return;
+  }
+
+  const filtered = filterCategories(state.rawCategories, state.searchQuery);
+  renderGrids(
+    resultsContainer,
+    filtered,
+    state.gridState,
+    state.searchQuery,
+    state.activeCategoryTab
+  );
+}
+
+async function loadResults(url) {
+  const trimmedUrl = url.trim();
+  if (!trimmedUrl) {
+    renderAlert(alertContainer, 'Informe uma URL válida para processar.');
+    return;
+  }
+
+  try {
+    new URL(trimmedUrl);
+  } catch {
+    renderAlert(alertContainer, 'A URL informada não é válida.');
+    return;
+  }
+
+  state.sourceUrl = trimmedUrl;
+  state.isLoading = true;
+  setControlsEnabled(false);
+  clearAlert(alertContainer);
+  renderSkeleton(resultsContainer);
+  syncUrlParams();
+
+  try {
+    const html = await fetchResultsPage(trimmedUrl);
+    const { eventTitle, categories } = parseResults(html);
+
+    state.rawCategories = categories;
+    state.gridState = createDefaultGridState();
+    state.activeCategoryTab = CATEGORY_KEYS[0];
+    headerTitle.textContent = eventTitle;
+
+    renderCurrentView();
+    setControlsEnabled(true);
+  } catch (error) {
+    state.rawCategories = null;
+    resultsContainer.innerHTML = '';
+    renderAlert(
+      alertContainer,
+      error.message || 'Erro ao processar a página de resultados.'
+    );
+    setControlsEnabled(false);
+  } finally {
+    state.isLoading = false;
+    btnProcess.disabled = false;
+    if (state.rawCategories) {
+      btnRefresh.disabled = false;
+    }
+  }
+}
+
+function handleGridAction(event) {
+  const button = event.target.closest('[data-action]');
+  if (!button || !state.rawCategories) {
+    return;
+  }
+
+  const { action, category } = button.dataset;
+
+  if (action === 'set-category-tab') {
+    if (category && CATEGORY_KEYS.includes(category)) {
+      state.activeCategoryTab = category;
+      renderCurrentView();
+    }
+    return;
+  }
+
+  if (!category || !state.gridState[category]) {
+    return;
+  }
+
+  const gridState = state.gridState[category];
+
+  switch (action) {
+    case 'toggle-expand':
+      gridState.expanded = !gridState.expanded;
+      break;
+    case 'set-view-mode':
+      gridState.viewMode = button.dataset.mode;
+      if (gridState.viewMode === 'age') {
+        gridState.expanded = true;
+      }
+      break;
+    case 'set-age-tab':
+      gridState.activeAgeTab = button.dataset.ageCode;
+      break;
+    default:
+      return;
+  }
+
+  renderCurrentView();
+}
+
+const handleSearchInput = debounce(() => {
+  state.searchQuery = searchInput.value;
+  syncUrlParams();
+  renderCurrentView();
+}, 300);
+
+function initFromUrlParams() {
+  const params = getUrlParams();
+
+  if (params.url) {
+    sourceUrlInput.value = params.url;
+  }
+  if (params.q) {
+    searchInput.value = params.q;
+    state.searchQuery = params.q;
+  }
+
+  if (params.url) {
+    loadResults(params.url);
+  }
+}
+
+btnProcess.addEventListener('click', () => {
+  loadResults(sourceUrlInput.value);
+});
+
+btnRefresh.addEventListener('click', () => {
+  if (state.sourceUrl) {
+    loadResults(state.sourceUrl);
+  }
+});
+
+sourceUrlInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    loadResults(sourceUrlInput.value);
+  }
+});
+
+searchInput.addEventListener('input', handleSearchInput);
+
+resultsContainer.addEventListener('click', handleGridAction);
+
+initFromUrlParams();
