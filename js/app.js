@@ -3,7 +3,6 @@ import { parseResults } from './parser.js';
 import { filterCategories } from './filter.js';
 import { buildSearchTerms, createSearchAutocomplete } from './autocomplete.js';
 import { getUrlParams, setUrlParams, normalizeSourceUrl } from './url-params.js';
-import { CATEGORY_KEYS } from './config.js';
 import {
   renderGrids,
   renderSkeleton,
@@ -23,9 +22,10 @@ const headerTitle = document.querySelector('.header__title');
 const state = {
   sourceUrl: '',
   searchQuery: '',
+  categoryList: [],
   rawCategories: null,
-  gridState: createDefaultGridState(),
-  activeCategoryTab: CATEGORY_KEYS[0],
+  gridState: {},
+  activeCategoryTab: null,
   isLoading: false,
   searchTerms: [],
 };
@@ -41,13 +41,17 @@ const searchAutocomplete = createSearchAutocomplete(searchInput, searchSuggestio
   onSelect: applySearchQuery,
 });
 
-function createDefaultGridState() {
+function createDefaultGridState(categoryKeys) {
   return Object.fromEntries(
-    CATEGORY_KEYS.map((key) => [
+    categoryKeys.map((key) => [
       key,
       { viewMode: 'all', activeAgeTab: null },
     ])
   );
+}
+
+function getCategoryKeys() {
+  return state.categoryList.map(({ key }) => key);
 }
 
 function debounce(fn, delay) {
@@ -69,7 +73,7 @@ function setControlsEnabled(hasData) {
 }
 
 function renderCurrentView() {
-  if (!state.rawCategories) {
+  if (!state.rawCategories || state.categoryList.length === 0) {
     resultsContainer.innerHTML = '';
     return;
   }
@@ -77,6 +81,7 @@ function renderCurrentView() {
   const filtered = filterCategories(state.rawCategories, state.searchQuery);
   renderGrids(
     resultsContainer,
+    state.categoryList,
     filtered,
     state.gridState,
     state.searchQuery,
@@ -101,19 +106,23 @@ async function loadResults(url) {
 
   try {
     const html = await fetchResultsPage(normalizedUrl);
-    const { eventTitle, categories } = parseResults(html);
+    const { eventTitle, categoryList, categories } = parseResults(html);
 
+    state.categoryList = categoryList;
     state.rawCategories = categories;
     state.searchTerms = buildSearchTerms(categories);
-    state.gridState = createDefaultGridState();
-    state.activeCategoryTab = CATEGORY_KEYS[0];
+    state.gridState = createDefaultGridState(getCategoryKeys());
+    state.activeCategoryTab = categoryList[0]?.key ?? null;
     headerTitle.textContent = eventTitle;
 
     renderCurrentView();
     setControlsEnabled(true);
   } catch (error) {
+    state.categoryList = [];
     state.rawCategories = null;
     state.searchTerms = [];
+    state.gridState = {};
+    state.activeCategoryTab = null;
     searchAutocomplete.clear();
     resultsContainer.innerHTML = '';
     renderAlert(
@@ -137,9 +146,10 @@ function handleGridAction(event) {
   }
 
   const { action, category } = button.dataset;
+  const categoryKeys = getCategoryKeys();
 
   if (action === 'set-category-tab') {
-    if (category && CATEGORY_KEYS.includes(category)) {
+    if (category && categoryKeys.includes(category)) {
       state.activeCategoryTab = category;
       renderCurrentView();
     }

@@ -1,10 +1,17 @@
-import { CATEGORY_KEYS, CATEGORY_LABELS, CATEGORY_SHORT_LABELS } from './config.js';
 import { groupByAgeGroup } from './age-group.js';
 
 function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+function getShortCategoryLabel(label) {
+  const trimmed = label.replace(/^RESULTADO\s+/i, '').trim();
+  if (trimmed.length <= 28) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, 25)}…`;
 }
 
 function getPodiumClass(placement) {
@@ -42,7 +49,7 @@ function renderAthleteCards(athletes, highlightQuery, useAgeGroupPlacement = fal
             </div>
             <div class="athlete-card__times">
               <span class="athlete-card__net">${escapeHtml(athlete.netTime)}</span>
-              <span class="athlete-card__pace">${escapeHtml(athlete.pace)}</span>
+              ${athlete.pace ? `<span class="athlete-card__pace">${escapeHtml(athlete.pace)}</span>` : ''}
             </div>
           </div>
         </article>
@@ -56,6 +63,8 @@ function renderTable(athletes, highlightQuery, useAgeGroupPlacement = false) {
     return '<p class="grid-card__empty">Nenhum atleta encontrado.</p>';
   }
 
+  const showPace = athletes.some((athlete) => athlete.pace);
+
   const rows = athletes
     .map((athlete) => {
       const displayPlacement = getDisplayPlacement(athlete, useAgeGroupPlacement);
@@ -68,7 +77,7 @@ function renderTable(athletes, highlightQuery, useAgeGroupPlacement = false) {
           <td data-label="Nº">${escapeHtml(athlete.number)}</td>
           <td data-label="Nome">${escapeHtml(athlete.name)}</td>
           <td data-label="Equipe">${escapeHtml(athlete.team || '—')}</td>
-          <td data-label="Ritmo">${escapeHtml(athlete.pace)}</td>
+          ${showPace ? `<td data-label="Ritmo">${escapeHtml(athlete.pace || '—')}</td>` : ''}
           <td data-label="Tempo líquido">${escapeHtml(athlete.netTime)}</td>
         </tr>
       `;
@@ -84,7 +93,7 @@ function renderTable(athletes, highlightQuery, useAgeGroupPlacement = false) {
             <th>Nº</th>
             <th>Nome</th>
             <th>Equipe</th>
-            <th>Ritmo</th>
+            ${showPace ? '<th>Ritmo</th>' : ''}
             <th>Tempo líquido</th>
           </tr>
         </thead>
@@ -169,15 +178,19 @@ function renderGridCard(categoryKey, athletes, gridState, searchQuery) {
   }
 
   const ageGroups = groupByAgeGroup(athletes);
+  const showAgeToggle = ageGroups.length > 1;
 
   const bodyContent =
-    state.viewMode === 'age'
+    state.viewMode === 'age' && showAgeToggle
       ? renderAgeTabs(categoryKey, ageGroups, state, highlightQuery)
       : renderTable(athletes, highlightQuery);
 
   return `
     <section class="grid-card" data-category="${categoryKey}">
       <header class="grid-card__header">
+        ${
+          showAgeToggle
+            ? `
         <div class="view-toggle" role="group" aria-label="Modo de visualização">
           <button
             type="button"
@@ -194,6 +207,9 @@ function renderGridCard(categoryKey, athletes, gridState, searchQuery) {
             data-mode="age"
           ><span class="view-toggle__label view-toggle__label--full">Por faixa etária</span><span class="view-toggle__label view-toggle__label--short">Fx. etária</span></button>
         </div>
+        `
+            : ''
+        }
       </header>
 
       <div class="grid-card__body">${bodyContent}</div>
@@ -201,11 +217,11 @@ function renderGridCard(categoryKey, athletes, gridState, searchQuery) {
   `;
 }
 
-export function renderSkeleton(container) {
+export function renderSkeleton(container, tabCount = 4) {
   container.innerHTML = `
     <div class="results-panel">
       <div class="category-tabs category-tabs--loading">
-        ${CATEGORY_KEYS.map(() => '<div class="skeleton skeleton--tab"></div>').join('')}
+        ${Array.from({ length: tabCount }, () => '<div class="skeleton skeleton--tab"></div>').join('')}
       </div>
       <div class="grid-card grid-card--skeleton">
         <div class="skeleton skeleton--title"></div>
@@ -230,14 +246,14 @@ export function clearAlert(container) {
   container.innerHTML = '';
 }
 
-function renderCategoryTabs(filteredCategories, activeCategoryTab) {
-  const tabs = CATEGORY_KEYS.map((key) => {
-    const isActive = key === activeCategoryTab;
-    const count = (filteredCategories[key] || []).length;
-    const label = CATEGORY_LABELS[key];
-    const shortLabel = CATEGORY_SHORT_LABELS[key];
+function renderCategoryTabs(categoryList, filteredCategories, activeCategoryTab) {
+  const tabs = categoryList
+    .map(({ key, label }) => {
+      const isActive = key === activeCategoryTab;
+      const count = (filteredCategories[key] || []).length;
+      const shortLabel = getShortCategoryLabel(label);
 
-    return `
+      return `
       <button
         type="button"
         class="category-tab${isActive ? ' category-tab--active' : ''}"
@@ -245,27 +261,37 @@ function renderCategoryTabs(filteredCategories, activeCategoryTab) {
         aria-selected="${isActive}"
         data-action="set-category-tab"
         data-category="${key}"
+        title="${escapeHtml(label)}"
       >
         <span class="category-tab__label category-tab__label--full">${escapeHtml(label)}</span>
         <span class="category-tab__label category-tab__label--short">${escapeHtml(shortLabel)}</span>
         <span class="category-tab__count">${count}</span>
       </button>
     `;
-  }).join('');
+    })
+    .join('');
 
   return `<nav class="category-tabs" role="tablist">${tabs}</nav>`;
 }
 
-export function renderGrids(container, filteredCategories, gridState, searchQuery, activeCategoryTab) {
-  const activeKey = CATEGORY_KEYS.includes(activeCategoryTab)
+export function renderGrids(
+  container,
+  categoryList,
+  filteredCategories,
+  gridState,
+  searchQuery,
+  activeCategoryTab
+) {
+  const categoryKeys = categoryList.map(({ key }) => key);
+  const activeKey = categoryKeys.includes(activeCategoryTab)
     ? activeCategoryTab
-    : CATEGORY_KEYS[0];
+    : categoryKeys[0];
 
   const activeAthletes = filteredCategories[activeKey] || [];
 
   container.innerHTML = `
     <div class="results-panel">
-      ${renderCategoryTabs(filteredCategories, activeKey)}
+      ${renderCategoryTabs(categoryList, filteredCategories, activeKey)}
       <div class="category-panel" role="tabpanel">
         ${renderGridCard(activeKey, activeAthletes, gridState, searchQuery)}
       </div>

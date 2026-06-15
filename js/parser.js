@@ -1,10 +1,3 @@
-import {
-  CATEGORY_MAP,
-  CATEGORY_PATTERN,
-  CATEGORY_KEYS,
-  REQUIRED_COLUMNS,
-} from './config.js';
-
 function normalizeHeader(text) {
   return text
     .trim()
@@ -25,7 +18,9 @@ function buildColumnMap(headers) {
     else if (normalized.startsWith('equipe')) map.equipe = index;
     else if (normalized.includes('cl.fx.et') || normalized.startsWith('clfxet')) map['cl.fx.et'] = index;
     else if (normalized.includes('fx.et') || normalized === 'fxet') map['fx.et'] = index;
+    else if (normalized.includes('cl.geral') || normalized.startsWith('clgeral')) map['cl.geral'] = index;
     else if (normalized.startsWith('ritmo')) map.ritmo = index;
+    else if (normalized.startsWith('tempo')) map.tempo = index;
     else if (normalized.startsWith('liquido')) map.liquido = index;
   });
 
@@ -33,7 +28,20 @@ function buildColumnMap(headers) {
 }
 
 function hasRequiredColumns(columnMap) {
-  return REQUIRED_COLUMNS.every((col) => columnMap[col] !== undefined);
+  const hasPlacement =
+    columnMap.coloc !== undefined ||
+    columnMap['cl.fx.et'] !== undefined ||
+    columnMap['cl.geral'] !== undefined;
+
+  const hasNetTime =
+    columnMap.liquido !== undefined || columnMap.tempo !== undefined;
+
+  return (
+    hasPlacement &&
+    columnMap.num !== undefined &&
+    columnMap.nome !== undefined &&
+    hasNetTime
+  );
 }
 
 function getCellText(cells, index) {
@@ -52,29 +60,39 @@ function parseAgeGroupPlacement(raw) {
 }
 
 function parseRow(cells, columnMap) {
-  const placementRaw = getCellText(cells, columnMap.coloc);
+  let placementRaw;
+
+  if (columnMap.coloc !== undefined) {
+    placementRaw = getCellText(cells, columnMap.coloc);
+  } else if (columnMap['cl.geral'] !== undefined) {
+    placementRaw = getCellText(cells, columnMap['cl.geral']);
+  } else {
+    placementRaw = getCellText(cells, columnMap['cl.fx.et']);
+  }
+
   const placement = parseInt(placementRaw, 10);
+  const hasGeneralColoc = columnMap.coloc !== undefined;
+  const ageGroupPlacement = hasGeneralColoc
+    ? parseAgeGroupPlacement(getCellText(cells, columnMap['cl.fx.et']))
+    : null;
+
+  const netTime =
+    getCellText(cells, columnMap.liquido) ||
+    getCellText(cells, columnMap.tempo) ||
+    '';
+
+  const pace = getCellText(cells, columnMap.ritmo) || '';
 
   return {
     placement: Number.isNaN(placement) ? 0 : placement,
-    ageGroupPlacement: parseAgeGroupPlacement(getCellText(cells, columnMap['cl.fx.et'])),
+    ageGroupPlacement,
     number: getCellText(cells, columnMap.num),
     name: getCellText(cells, columnMap.nome),
     team: getCellText(cells, columnMap.equipe),
     ageGroupCode: getCellText(cells, columnMap['fx.et']),
-    pace: getCellText(cells, columnMap.ritmo),
-    netTime: getCellText(cells, columnMap.liquido),
+    pace,
+    netTime,
   };
-}
-
-function parseCategoryKey(labelText) {
-  const match = labelText.match(CATEGORY_PATTERN);
-  if (!match) {
-    return null;
-  }
-
-  const key = `${match[1].toUpperCase()} ${match[2].toUpperCase()}`;
-  return CATEGORY_MAP[key] || null;
 }
 
 function parseTable(table) {
@@ -115,9 +133,7 @@ function findCategorySections(doc) {
 
   for (const label of labels) {
     const labelText = label.textContent.trim();
-    const categoryKey = parseCategoryKey(labelText);
-
-    if (!categoryKey) {
+    if (!labelText) {
       continue;
     }
 
@@ -127,11 +143,15 @@ function findCategorySections(doc) {
     }
 
     if (next && next.classList.contains('tabela-resultado')) {
-      sections.push({ categoryKey, labelText, table: next });
+      sections.push({ labelText, table: next });
     }
   }
 
   return sections;
+}
+
+function buildCategoryKey(label, index) {
+  return `cat-${index}`;
 }
 
 export function parseResults(html) {
@@ -145,14 +165,16 @@ export function parseResults(html) {
     );
   }
 
-  const categories = Object.fromEntries(CATEGORY_KEYS.map((key) => [key, []]));
-  let parsedAny = false;
+  const categoryList = [];
+  const categories = {};
 
-  for (const section of sections) {
+  for (const [index, section] of sections.entries()) {
     try {
       const athletes = parseTable(section.table);
-      categories[section.categoryKey] = athletes;
-      parsedAny = true;
+      const key = buildCategoryKey(section.labelText, index);
+
+      categoryList.push({ key, label: section.labelText, athletes });
+      categories[key] = athletes;
     } catch {
       throw new Error(
         'Estrutura da página não reconhecida. Esta URL não parece ser uma página de resultados compatível.'
@@ -160,14 +182,8 @@ export function parseResults(html) {
     }
   }
 
-  if (!parsedAny) {
-    throw new Error(
-      'Estrutura da página não reconhecida. Esta URL não parece ser uma página de resultados compatível.'
-    );
-  }
-
   const eventTitle =
     doc.querySelector('h1')?.textContent.trim() || 'Resultados';
 
-  return { eventTitle, categories };
+  return { eventTitle, categoryList, categories };
 }
