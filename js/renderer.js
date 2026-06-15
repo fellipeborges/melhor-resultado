@@ -145,21 +145,16 @@ function renderAgeTabs(categoryKey, ageGroups, state, highlightQuery) {
 
 function renderGridCard(categoryKey, athletes, gridState, searchQuery) {
   const state = gridState[categoryKey] || {
-    expanded: false,
     viewMode: 'all',
     activeAgeTab: null,
   };
 
   const count = athletes.length;
-  const countLabel = count === 1 ? '1 atleta' : `${count} atletas`;
   const highlightQuery = searchQuery.trim().length > 0;
 
   if (count === 0 && !highlightQuery) {
     return `
       <section class="grid-card grid-card--empty" data-category="${categoryKey}">
-        <header class="grid-card__header">
-          <span class="grid-card__count">Sem dados</span>
-        </header>
         <p class="grid-card__empty">Nenhum resultado disponível para esta categoria.</p>
       </section>
     `;
@@ -168,36 +163,21 @@ function renderGridCard(categoryKey, athletes, gridState, searchQuery) {
   if (count === 0 && highlightQuery) {
     return `
       <section class="grid-card" data-category="${categoryKey}">
-        <header class="grid-card__header">
-          <span class="grid-card__count">0 atletas</span>
-        </header>
         <p class="grid-card__empty">Nenhum atleta encontrado para esta busca.</p>
       </section>
     `;
   }
-
-  const visibleAthletes =
-    state.viewMode === 'all' && !state.expanded ? athletes.slice(0, 3) : athletes;
 
   const ageGroups = groupByAgeGroup(athletes);
 
   const bodyContent =
     state.viewMode === 'age'
       ? renderAgeTabs(categoryKey, ageGroups, state, highlightQuery)
-      : renderTable(visibleAthletes, highlightQuery);
-
-  const showExpandButton =
-    state.viewMode === 'all' && athletes.length > 3;
-
-  const expandLabel = state.expanded ? 'Ver menos' : 'Ver todos';
+      : renderTable(athletes, highlightQuery);
 
   return `
     <section class="grid-card" data-category="${categoryKey}">
       <header class="grid-card__header">
-        <span class="grid-card__count">${countLabel}</span>
-      </header>
-
-      <div class="grid-card__toolbar">
         <div class="view-toggle" role="group" aria-label="Modo de visualização">
           <button
             type="button"
@@ -214,20 +194,9 @@ function renderGridCard(categoryKey, athletes, gridState, searchQuery) {
             data-mode="age"
           ><span class="view-toggle__label view-toggle__label--full">Por faixa etária</span><span class="view-toggle__label view-toggle__label--short">Fx. etária</span></button>
         </div>
-      </div>
+      </header>
 
       <div class="grid-card__body">${bodyContent}</div>
-
-      ${
-        showExpandButton
-          ? `<button
-              type="button"
-              class="btn btn--ghost btn--expand"
-              data-action="toggle-expand"
-              data-category="${categoryKey}"
-            >${expandLabel}</button>`
-          : ''
-      }
     </section>
   `;
 }

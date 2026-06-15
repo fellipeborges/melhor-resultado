@@ -3,10 +3,10 @@ export const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 export const FETCH_TIMEOUT_MS = 15000;
 
 export const CATEGORY_KEYS = [
-  'caminhada_feminino',
-  'caminhada_masculino',
   'corrida_feminino',
   'corrida_masculino',
+  'caminhada_feminino',
+  'caminhada_masculino',
 ];
 
 export const CATEGORY_LABELS = {

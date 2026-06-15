@@ -31,7 +31,7 @@ function createDefaultGridState() {
   return Object.fromEntries(
     CATEGORY_KEYS.map((key) => [
       key,
-      { expanded: false, viewMode: 'all', activeAgeTab: null },
+      { viewMode: 'all', activeAgeTab: null },
     ])
   );
 }
@@ -136,14 +136,8 @@ function handleGridAction(event) {
   const gridState = state.gridState[category];
 
   switch (action) {
-    case 'toggle-expand':
-      gridState.expanded = !gridState.expanded;
-      break;
     case 'set-view-mode':
       gridState.viewMode = button.dataset.mode;
-      if (gridState.viewMode === 'age') {
-        gridState.expanded = true;
-      }
       break;
     case 'set-age-tab':
       gridState.activeAgeTab = button.dataset.ageCode;
