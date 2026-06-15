@@ -1,6 +1,7 @@
 import { fetchResultsPage } from './fetcher.js';
 import { parseResults } from './parser.js';
 import { filterCategories } from './filter.js';
+import { buildSearchTerms, createSearchAutocomplete } from './autocomplete.js';
 import { getUrlParams, setUrlParams, normalizeSourceUrl } from './url-params.js';
 import { CATEGORY_KEYS } from './config.js';
 import {
@@ -12,6 +13,7 @@ import {
 
 const sourceUrlInput = document.getElementById('source-url');
 const searchInput = document.getElementById('search-input');
+const searchSuggestions = document.getElementById('search-suggestions');
 const btnProcess = document.getElementById('btn-process');
 const btnRefresh = document.getElementById('btn-refresh');
 const alertContainer = document.getElementById('alert-container');
@@ -25,7 +27,19 @@ const state = {
   gridState: createDefaultGridState(),
   activeCategoryTab: CATEGORY_KEYS[0],
   isLoading: false,
+  searchTerms: [],
 };
+
+function applySearchQuery(query) {
+  state.searchQuery = query;
+  syncUrlParams();
+  renderCurrentView();
+}
+
+const searchAutocomplete = createSearchAutocomplete(searchInput, searchSuggestions, {
+  getTerms: () => state.searchTerms,
+  onSelect: applySearchQuery,
+});
 
 function createDefaultGridState() {
   return Object.fromEntries(
@@ -90,6 +104,7 @@ async function loadResults(url) {
     const { eventTitle, categories } = parseResults(html);
 
     state.rawCategories = categories;
+    state.searchTerms = buildSearchTerms(categories);
     state.gridState = createDefaultGridState();
     state.activeCategoryTab = CATEGORY_KEYS[0];
     headerTitle.textContent = eventTitle;
@@ -98,6 +113,8 @@ async function loadResults(url) {
     setControlsEnabled(true);
   } catch (error) {
     state.rawCategories = null;
+    state.searchTerms = [];
+    searchAutocomplete.clear();
     resultsContainer.innerHTML = '';
     renderAlert(
       alertContainer,
@@ -150,9 +167,7 @@ function handleGridAction(event) {
 }
 
 const handleSearchInput = debounce(() => {
-  state.searchQuery = searchInput.value;
-  syncUrlParams();
-  renderCurrentView();
+  applySearchQuery(searchInput.value);
 }, 300);
 
 function initFromUrlParams() {

@@ -32,15 +32,27 @@
             </button>
           </div>
         </div>
-        <input
-          type="search"
-          id="search-input"
-          class="input input--search"
-          placeholder="Nome, número ou equipe..."
-          autocomplete="off"
-          enterkeyhint="search"
-          disabled
-        >
+        <div class="search-autocomplete">
+          <input
+            type="search"
+            id="search-input"
+            class="input input--search"
+            placeholder="Nome, número ou equipe..."
+            autocomplete="off"
+            enterkeyhint="search"
+            role="combobox"
+            aria-expanded="false"
+            aria-controls="search-suggestions"
+            aria-autocomplete="list"
+            disabled
+          >
+          <ul
+            id="search-suggestions"
+            class="search-autocomplete__list"
+            role="listbox"
+            hidden
+          ></ul>
+        </div>
       </div>
     </header>
 
