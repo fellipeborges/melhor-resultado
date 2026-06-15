@@ -1,7 +1,7 @@
 import { fetchResultsPage } from './fetcher.js';
 import { parseResults } from './parser.js';
 import { filterCategories } from './filter.js';
-import { getUrlParams, setUrlParams } from './url-params.js';
+import { getUrlParams, setUrlParams, normalizeSourceUrl } from './url-params.js';
 import { CATEGORY_KEYS } from './config.js';
 import {
   renderGrids,
@@ -71,20 +71,14 @@ function renderCurrentView() {
 }
 
 async function loadResults(url) {
-  const trimmedUrl = url.trim();
-  if (!trimmedUrl) {
+  const normalizedUrl = normalizeSourceUrl(url);
+  if (!normalizedUrl) {
     renderAlert(alertContainer, 'Informe uma URL válida para processar.');
     return;
   }
 
-  try {
-    new URL(trimmedUrl);
-  } catch {
-    renderAlert(alertContainer, 'A URL informada não é válida.');
-    return;
-  }
-
-  state.sourceUrl = trimmedUrl;
+  state.sourceUrl = normalizedUrl;
+  sourceUrlInput.value = normalizedUrl;
   state.isLoading = true;
   setControlsEnabled(false);
   clearAlert(alertContainer);
@@ -92,7 +86,7 @@ async function loadResults(url) {
   syncUrlParams();
 
   try {
-    const html = await fetchResultsPage(trimmedUrl);
+    const html = await fetchResultsPage(normalizedUrl);
     const { eventTitle, categories } = parseResults(html);
 
     state.rawCategories = categories;
