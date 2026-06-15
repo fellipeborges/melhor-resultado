@@ -94,6 +94,10 @@ body {
   flex: 1;
 }
 
+.controls__actions .btn--icon {
+  flex: 0 0 auto;
+}
+
 .input {
   width: 100%;
   min-height: var(--touch-min);
@@ -275,7 +279,7 @@ body {
 }
 
 @media (min-width: 1024px) {
-  .controls__actions .btn {
+  .controls__actions .btn:not(.btn--icon) {
     min-width: 120px;
   }
 }

@@ -14,7 +14,6 @@ const sourceUrlInput = document.getElementById('source-url');
 const searchInput = document.getElementById('search-input');
 const searchSuggestions = document.getElementById('search-suggestions');
 const btnProcess = document.getElementById('btn-process');
-const btnRefresh = document.getElementById('btn-refresh');
 const alertContainer = document.getElementById('alert-container');
 const resultsContainer = document.getElementById('results-container');
 const headerTitle = document.querySelector('.header__title');
@@ -68,7 +67,6 @@ function syncUrlParams() {
 
 function setControlsEnabled(hasData) {
   searchInput.disabled = !hasData;
-  btnRefresh.disabled = !hasData || state.isLoading;
   btnProcess.disabled = state.isLoading;
 }
 
@@ -133,9 +131,6 @@ async function loadResults(url) {
   } finally {
     state.isLoading = false;
     btnProcess.disabled = false;
-    if (state.rawCategories) {
-      btnRefresh.disabled = false;
-    }
   }
 }
 
@@ -198,12 +193,6 @@ function initFromUrlParams() {
 
 btnProcess.addEventListener('click', () => {
   loadResults(sourceUrlInput.value);
-});
-
-btnRefresh.addEventListener('click', () => {
-  if (state.sourceUrl) {
-    loadResults(state.sourceUrl);
-  }
 });
 
 sourceUrlInput.addEventListener('keydown', (event) => {

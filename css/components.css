@@ -32,6 +32,18 @@
   background: var(--color-accent-hover);
 }
 
+.btn--icon {
+  padding: 10px;
+  min-width: var(--touch-min);
+  aspect-ratio: 1;
+}
+
+.btn__icon {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
 .btn--secondary {
   background: var(--color-primary);
   color: #fff;
